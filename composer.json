@@ -1,0 +1,15 @@
+{
+  "name": "vendor_name/htcw-coding-challenge",
+  "description": "February Coding challenge for How To Code Well",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Francesco Danti",
+      "email": "fdanti@gmail.com"
+    }
+  ],
+  "require": {
+    "atk4/ui": "^2.0"
+  }
+}
