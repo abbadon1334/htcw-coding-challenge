@@ -13,36 +13,58 @@ use atk4\ui\View;
 
 require "../../vendor/autoload.php";
 
+/** Persistence model to store data in persistence */
 class ModelHash extends Model
 {
-
     public $table = 'tbl_hash';
 
+    /**
+     * Internal function called from persistence
+     * @internal
+     * @throws \atk4\core\Exception
+     */
     public function init()
     {
+        // perform initialization of the model
         parent::init();
 
+        // define fields of the model
         $this->addField('hash_string', [
-            'type' => 'string',
-            'system' => true // will be not visible in UI
+            'type' => 'string', // type of field
+            'system' => true // set not visible in UI
         ]);
     }
 
-    public function setHashFromInputString(string $input): self
+    /**
+     * Set Hash to model converting from input string
+     *
+     * @param string $input_value Clear value to be converted
+     * @throws \atk4\data\Exception
+     *
+     * @return $this
+     */
+    public function setHashFromInputString(string $input_value): self
     {
-        $this->set('hash_string', password_hash($input, PASSWORD_DEFAULT));
+        $this->set('hash_string', password_hash($input_value, PASSWORD_DEFAULT));
 
         return $this;
     }
 
-    public function isValidHash(string $clear_value): bool
-    {
-        return password_verify($clear_value, $this->get('hash_string'));
-    }
-
+    /**
+     * Validate if input string has an already valid hash in persistence
+     *
+     * @param string $clear_value
+     * @throws \atk4\core\Exception
+     *
+     * @return bool
+     */
     public function isAlreadyHashed(string $clear_value): bool
     {
+        // Same as new static($this->persistence)
+        // but better for performance
         $model = $this->newInstance();
+
+        // loop model
         foreach ($model->getIterator() as $m) {
             if ($m->isValidHash($clear_value)) {
                 return true;
@@ -50,32 +72,53 @@ class ModelHash extends Model
         }
         return false;
     }
+
+    /**
+     * Validate input string vs stored hash
+     *
+     * @param string $clear_value
+     *
+     * @return bool
+     */
+    public function isValidHash(string $clear_value): bool
+    {
+        return password_verify($clear_value, $this->get('hash_string'));
+    }
 }
 
 $app = new App([
-    'title' => 'Full Example',
-    'call_exit' => false
+    'title' => 'Full Example', // App title
+    'call_exit' => false // don't call exit function, in place use exception to avoid php script shutdown
 ]);
-$app->initLayout(Centered::class)->dbConnect('sqlite:db.sq3');
 
+// Set layout of the app
+$app->initLayout(Centered::class);
+
+// connect to PDO
+$app->dbConnect('sqlite:db.sq3');
+
+// If table is not present is not present, create it.
 (Migration::getMigration(new ModelHash($app->db)))->migrate();
 
+// instantiate Model with persistence $app->db
 $model = new ModelHash($app->db);
-$count = (int)$model->action('count')->getOne();
 
 /**
  * Add form to app
  * @var Form $form
  */
-$form = $app->add(Form::class);
+$form = $app->add([View::class])->addClass('ui segment')->add(Form::class);
 $form->buttonSave->set('Execute Action');
 
-$app->add([Header::class, 'Result message', 'size' => 4]);
-/**
- * Add Loader and setup
- * @var Loader $loader
- */
-$loader = $app->add([
+$app->add([View::class])->addClass('ui divider');
+
+// response container
+$res_container = $app->add([View::class])->addClass('ui segment');
+$res_container->add([Header::class, 'Result message', 'size' => 4]);
+
+// Add Loader to app and setup for reloading
+/** @var Loader $loader */
+$loader = $res_container->add([
     Loader::class,
     'loadEvent' => false
 ]);
@@ -83,12 +126,20 @@ $loader->set(function (Loader $loader) {
     $loader->add(View::class)->set($loader->stickyGet('action_response') ?? '');
 });
 
+// Add counter for already stored hash
+$app->add([View::class])->addClass('ui divider');
+$counter = $app->add([View::class])->addClass('ui segment')->set('Already hashed strings: ' . (int)$model->action('count')->getOne());
+
 // Setup form
 $form->setModel($model);
+
+// Add virtual field to the form as input
 $form->addField('input_value', [Line::class], [
-    'never_persist' => true,
+    'never_persist' => true, // don't save to persistence
     'required' => true
 ]);
+
+// Add virtual field to the form as dropdown
 $form->addField('action_request', [DropDown::class], [
     'type' => 'enum',
     'values' => [
@@ -98,47 +149,37 @@ $form->addField('action_request', [DropDown::class], [
     'never_persist' => true,
     'required' => true,
 ]);
+// Set initial value
 $form->model->set('action_request', 'add');
 
-$form->onSubmit(function ($f) use ($loader) {
+// Define form submit callback
+$form->onSubmit(function ($f) use ($counter, $loader) {
 
+    // get input from model
     $input = $f->model->get('input_value');
     $response = 'Input : ' . $input;
 
+    // get selected action from dropdown
     switch ($f->model->get('action_request')) {
         case 'add':
 
-            if ($f->model->isAlreadyHashed($input)) {
-                return $loader->jsLoad([
-                    'action_response' => $response . ' was already hashed.'
-                ]);
+            $already_hashed = $f->model->isAlreadyHashed($input);
+            if (!$already_hashed) {
+                $f->model->setHashFromInputString($input)->save();
             }
 
-            $f->model->setHashFromInputString($input)->save();
-
-            $response .= ' => ';
-            $response .= 'Hash : ' . $f->model->get('hash_string');
-
-            return $loader->jsLoad([
-                'action_response' => $response
-            ]);
+            $response .= $already_hashed ? ' was already hashed.' : ' => Hash : ' . $f->model->get('hash_string');
 
             break;
+
         case 'validate':
-
-            $model = new ModelHash($f->app->db);
-
-            if ($model->isAlreadyHashed($input)) {
-                return $loader->jsLoad([
-                    'action_response' => $response . ' is valid!'
-                ]);
-            }
-
-            return $loader->jsLoad([
-                'action_response' => $response . ' is not valid!'
-            ]);
+            $response .= $f->model->newInstance()->isAlreadyHashed($input) ? ' is valid!' : ' is not valid!';
             break;
     }
 
-    throw new \atk4\ui\Exception('Something went wrong');
+    // return JS actions to be done on response a sort of Partial fragment reload of UI
+    return [
+        $counter->jsReload(), // JS Reload counter
+        $loader->jsLoad(['action_response' => $response]) // JS Load Loader with a new response message
+    ];
 });
