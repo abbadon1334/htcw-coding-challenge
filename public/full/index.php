@@ -20,8 +20,8 @@ class ModelHash extends Model
 
     /**
      * Internal function called from persistence
-     * @internal
      * @throws \atk4\core\Exception
+     * @internal
      */
     public function init()
     {
@@ -39,9 +39,9 @@ class ModelHash extends Model
      * Set Hash to model converting from input string
      *
      * @param string $input_value Clear value to be converted
+     * @return $this
      * @throws \atk4\data\Exception
      *
-     * @return $this
      */
     public function setHashFromInputString(string $input_value): self
     {
@@ -54,9 +54,9 @@ class ModelHash extends Model
      * Validate if input string has an already valid hash in persistence
      *
      * @param string $clear_value
+     * @return bool
      * @throws \atk4\core\Exception
      *
-     * @return bool
      */
     public function isAlreadyHashed(string $clear_value): bool
     {
@@ -87,9 +87,12 @@ class ModelHash extends Model
 }
 
 $app = new App([
-    'title' => 'Full Example', // App title
+    'title' => 'How to Code Well', // App title
     'call_exit' => false // don't call exit function, in place use exception to avoid php script shutdown
 ]);
+
+// add HTCW logo
+$app->cdn['layout-logo'] = 'https://codechallenges.howtocodewell.net/icons/icon-144x144.png';
 
 // Set layout of the app
 $app->initLayout(Centered::class);
@@ -103,6 +106,13 @@ $app->dbConnect('sqlite:db.sq3');
 // instantiate Model with persistence $app->db
 $model = new ModelHash($app->db);
 
+// add some header
+$app->add([
+    View::class,
+    'element' => 'a'
+])->set('2020 - February Challenge Description')->setAttr('href', 'https://codechallenges.howtocodewell.net/2020/february');
+
+$app->add([View::class])->addClass('ui divider');
 /**
  * Add form to app
  * @var Form $form
