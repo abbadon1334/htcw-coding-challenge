@@ -22,11 +22,11 @@ $loader = $app->add([
     Loader::class,
     'loadEvent' => false
 ]);
-$loader->set(function(Loader $loader) {
-   $loader->add(View::class)->set(password_hash($loader->stickyGet('input_string'), PASSWORD_DEFAULT));
+$loader->set(function (Loader $loader) {
+    $loader->add(View::class)->set(password_hash($loader->stickyGet('input_string'), PASSWORD_DEFAULT));
 });
 
 $form->addField('input_string');
-$form->onSubmit(function(Form $form) use ($loader) {
+$form->onSubmit(function (Form $form) use ($loader) {
     return $loader->jsLoad(['input_string' => $form->model->get("input_string")]);
 });
