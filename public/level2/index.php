@@ -8,28 +8,27 @@ use atk4\ui\View;
 
 require "../../vendor/autoload.php";
 
-$file_path = '../hashes.txt';
-$file_hashes = fopen($file_path, 'a+');
 $app = new App([
     "title" => 'Level 2 - Add the hashed string to a text file',
     "call_exit" => false
 ]);
-
 $app->initLayout(Centered::class);
 
 /** @var Form $form */
-$form = $app->add(new Form());
+$form = $app->add(Form::class);
+$form->addField('input_string');
 
 /** @var Loader $loader */
 $loader = $app->add([
     Loader::class,
     'loadEvent' => false
-]);
-$loader->set(function (Loader $loader) {
+])->set(function (Loader $loader) {
     $loader->add(View::class)->set($loader->stickyGet('result'));
 });
 
-$form->addField('input_string');
+$file_path = '../hashes.txt';
+touch($file_path);
+$file_hashes = fopen($file_path, 'a+');
 $form->onSubmit(function (Form $form) use ($loader, $file_hashes) {
 
     $input_string = $form->model->get("input_string");
@@ -39,5 +38,4 @@ $form->onSubmit(function (Form $form) use ($loader, $file_hashes) {
     fclose($file_hashes);
 
     return $loader->jsLoad(['result' => 'hash added with success']);
-
 });

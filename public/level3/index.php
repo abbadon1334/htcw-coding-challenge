@@ -1,5 +1,7 @@
 <?php
 
+require "../../vendor/autoload.php";
+
 use atk4\data\Model;
 use atk4\data\Persistence\Array_;
 use atk4\ui\App;
@@ -9,9 +11,8 @@ use atk4\ui\Layout\Centered;
 use atk4\ui\Loader;
 use atk4\ui\View;
 
-require "../../vendor/autoload.php";
-
 $file_path = '../hashes.txt';
+touch($file_path);
 $file_hashes = file_get_contents($file_path);
 $hashes = explode(PHP_EOL, $file_hashes);
 
@@ -22,11 +23,9 @@ foreach ($hashes as $hash) {
 
     $hash = trim($hash);
 
-    if (empty($hash)) {
-        continue;
+    if (!empty($hash)) {
+        $model_hash->insert(['hash' => $hash]);
     }
-
-    $model_hash->insert(['hash' => $hash]);
 }
 
 $app = new App([
@@ -62,15 +61,17 @@ $form->onSubmit(function (Form $form) use ($loader, $model_hash, $file_path) {
     }
 
     $result = 'Hash is not valid.';
-
-    $add_to_file = (int)$form->model->get("add_to_file");
-    if ($add_to_file === 1) {
-
+    if ((int)$form->model->get("add_to_file") === 1) {
         $hash = password_hash($input_string, PASSWORD_DEFAULT);
         $model_hash->insert(['hash' => $hash]);
+
         $file_content = [];
         foreach ($model_hash->getIterator() as $m) {
-            $file_content[] = $m->get('hash');
+            $hash = trim($m->get('hash'));
+
+            if (!empty($hash)) {
+                $file_content[] = $hash;
+            }
         }
 
         file_put_contents($file_path, implode(PHP_EOL, $file_content));
