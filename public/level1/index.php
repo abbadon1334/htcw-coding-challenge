@@ -22,8 +22,8 @@ $app->add(Form::class)
 
 /** @var Loader $loader */
 $loader = $app->add([
-        Loader::class,
-        'loadEvent' => false
-    ])->set(function (Loader $loader) {
-        $loader->add(View::class)->set(password_hash($loader->stickyGet('input_string'), PASSWORD_DEFAULT));
-    });
+    Loader::class,
+    'loadEvent' => false
+])->set(function (Loader $loader) {
+    $loader->add(View::class)->set(password_hash($loader->stickyGet('input_string'), PASSWORD_DEFAULT));
+});
