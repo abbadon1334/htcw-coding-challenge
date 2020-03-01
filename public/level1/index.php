@@ -14,11 +14,11 @@ $app = new App([
 ]);
 $app->initLayout(Centered::class);
 
-$app->add(Form::class)
-    ->addField('input_string')
-    ->onSubmit(function (Form $form) use ($loader) {
-        return $loader->jsLoad(['input_string' => $form->model->get("input_string")]);
-    });
+$form = $app->add(Form::class);
+$form->addField('input_string');
+$form->onSubmit(function (Form $form) use ($loader) {
+    return $loader->jsLoad(['input_string' => $form->model->get("input_string")]);
+});
 
 /** @var Loader $loader */
 $loader = $app->add([
